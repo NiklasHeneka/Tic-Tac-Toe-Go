@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -43,23 +44,56 @@ type Board struct {
 }
 
 type Bot interface {
-	MakeMove(board Board) Move
+	MakeMove(board Board)
 }
 
-type Move struct {
-	Row, Col int
-}
 type RandomBot struct{}
 
-func (b RandomBot) MakeMove(board Board) Move { return Move{} }
+func (b RandomBot) MakeMove(board Board) {}
 
 type SmartBot struct{}
 
-func (b SmartBot) MakeMove(board Board) Move { return Move{} }
+func (b SmartBot) MakeMove(board Board) {}
 
 type AIBot struct{}
 
-func (b AIBot) MakeMove(board Board) Move { return Move{} }
+func (b AIBot) MakeMove(board Board) {}
+
+func userMove(board *Board, player Player) {
+	for {
+		var input string
+		fmt.Print("Enter your field (e.g., 11, 23, 31): ")
+		fmt.Scanln(&input)
+
+		if len(input) != 2 {
+			fmt.Println("Invalid format. Please enter exactly two digits (e.g., 13).")
+			continue
+		}
+
+		rowDigit, errR := strconv.Atoi(string(input[0]))
+		colDigit, errC := strconv.Atoi(string(input[1]))
+
+		if errR != nil || errC != nil {
+			fmt.Println("Invalid input. Please enter numbers only.")
+			continue
+		}
+
+		r, c := rowDigit-1, colDigit-1
+
+		if r < 0 || r > 2 || c < 0 || c > 2 {
+			fmt.Println("Error: Digits must be between 1 and 3.")
+			continue
+		}
+
+		if board.fields[r][c] != None {
+			fmt.Printf("Error: %d%d is already taken by %s.\n", rowDigit, colDigit, board.fields[r][c])
+			continue
+		} else {
+			board.fields[r][c] = player
+			return
+		}
+	}
+}
 
 func isGameOver(board Board) (bool, Player) {
 	winner := checkWinner(board)
@@ -179,4 +213,5 @@ func printBoard(board Board) {
 			fmt.Println("---------")
 		}
 	}
+	fmt.Println()
 }
