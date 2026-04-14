@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -10,25 +11,66 @@ import (
 
 func main() {
 	fmt.Println("Hello and welcome to a game of Tic-Tac-Toe!")
-	getPlayerName()
-	doesUserStart()
-	selectBot()
+	name := getPlayerName()
+	userStarts := doesUserStart()
+	bot := selectBot()
 	fmt.Println("Let the game begin! *Imagine some epic music playing*")
 
 	board := Board{}
+	round := 1
 	printBoard(board)
+
+	for {
+		if round%2 == 1 && userStarts {
+			userMove(&board, X)
+		} else if round%2 == 2 && !userStarts {
+			userMove(&board, O)
+		} else if round%2 == 1 && !userStarts {
+			bot.MakeMove(&board, X)
+		} else {
+			bot.MakeMove(&board, O)
+		}
+
+		printBoard(board)
+		round++
+
+		gameOver, winner := isGameOver(board)
+		if gameOver {
+			if winner == None {
+				fmt.Println("This game ended in a draw. How boring...")
+			} else if winner == X && userStarts || winner == O && !userStarts {
+				fmt.Printf("Congratulations %v, you won!\n", name)
+			} else {
+				fmt.Println("You lost!")
+			}
+
+			var playAgain string
+			for {
+				fmt.Print("Do you want to play again? (y/n): ")
+				fmt.Scanln(&playAgain)
+
+				if playAgain == "y" {
+					board = Board{}
+					round = 1
+					break
+				} else if playAgain == "n" {
+					return
+				}
+			}
+		}
+	}
 
 }
 
-type Player int
+type Mark int
 
 const (
-	None Player = iota
+	None Mark = iota
 	X
 	O
 )
 
-func (p Player) String() string {
+func (p Mark) String() string {
 	switch p {
 	case X:
 		return "X"
@@ -40,26 +82,30 @@ func (p Player) String() string {
 }
 
 type Board struct {
-	fields [3][3]Player
+	fields [3][3]Mark
 }
 
 type Bot interface {
-	MakeMove(board Board)
+	MakeMove(board *Board, mark Mark)
 }
 
 type RandomBot struct{}
 
-func (b RandomBot) MakeMove(board Board) {}
+func (b RandomBot) MakeMove(board *Board, mark Mark) {
+	possiblePosition := getUnoccupiedFields(*board)
+	random := rand.IntN(len(possiblePosition))
+	board.fields[possiblePosition[random].x][possiblePosition[random].y] = mark
+}
 
 type SmartBot struct{}
 
-func (b SmartBot) MakeMove(board Board) {}
+func (b SmartBot) MakeMove(board *Board, mark Mark) {}
 
 type AIBot struct{}
 
-func (b AIBot) MakeMove(board Board) {}
+func (b AIBot) MakeMove(board *Board, mark Mark) {}
 
-func userMove(board *Board, player Player) {
+func userMove(board *Board, mark Mark) {
 	for {
 		var input string
 		fmt.Print("Enter your field (e.g., 11, 23, 31): ")
@@ -89,13 +135,13 @@ func userMove(board *Board, player Player) {
 			fmt.Printf("Error: %d%d is already taken by %s.\n", rowDigit, colDigit, board.fields[r][c])
 			continue
 		} else {
-			board.fields[r][c] = player
+			board.fields[r][c] = mark
 			return
 		}
 	}
 }
 
-func isGameOver(board Board) (bool, Player) {
+func isGameOver(board Board) (bool, Mark) {
 	winner := checkWinner(board)
 	if winner != None {
 		return true, winner
@@ -107,7 +153,7 @@ func isGameOver(board Board) (bool, Player) {
 	return false, None
 }
 
-func checkWinner(board Board) Player {
+func checkWinner(board Board) Mark {
 	fields := board.fields
 	for i := 0; i < 3; i++ {
 		if fields[i][0] != None && fields[i][0] == fields[i][1] && fields[i][1] == fields[i][2] {
@@ -130,14 +176,23 @@ func checkWinner(board Board) Player {
 }
 
 func isBoardFull(board Board) bool {
+	return len(getUnoccupiedFields(board)) == 0
+}
+
+type Position struct {
+	x, y int
+}
+
+func getUnoccupiedFields(board Board) []Position {
+	var positions []Position
 	for r := 0; r < 3; r++ {
 		for c := 0; c < 3; c++ {
 			if board.fields[r][c] == None {
-				return false
+				positions = append(positions, Position{r, c})
 			}
 		}
 	}
-	return true
+	return positions
 }
 
 func getPlayerName() string {
@@ -190,7 +245,7 @@ func doesUserStart() bool {
 	var userStarts string
 
 	for {
-		fmt.Print("Do you want to start the game? (y/n): ")
+		fmt.Print("Do you want to make the first move? (y/n): ")
 		fmt.Scanln(&userStarts)
 
 		if userStarts == "y" {
