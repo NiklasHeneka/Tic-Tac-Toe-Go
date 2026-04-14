@@ -13,12 +13,35 @@ func main() {
 	getPlayerName()
 	doesUserStart()
 	selectBot()
-	fmt.Println("Let the game begin! *Imagine some epic music*")
+	fmt.Println("Let the game begin! *Imagine some epic music playing*")
 
 }
 
+type Marker int
+
+const (
+	None Marker = iota
+	X
+	O
+)
+
+func (p Marker) String() string {
+	switch p {
+	case X:
+		return "X"
+	case O:
+		return "O"
+	default:
+		return " "
+	}
+}
+
+type Board struct {
+	fields [3][3]Marker
+}
+
 type Bot interface {
-	MakeMove() Move
+	MakeMove(board Board) Move
 }
 
 type Move struct {
@@ -26,15 +49,15 @@ type Move struct {
 }
 type RandomBot struct{}
 
-func (b RandomBot) MakeMove() Move { return Move{} }
+func (b RandomBot) MakeMove(board Board) Move { return Move{} }
 
 type SmartBot struct{}
 
-func (b SmartBot) MakeMove() Move { return Move{} }
+func (b SmartBot) MakeMove(board Board) Move { return Move{} }
 
 type AIBot struct{}
 
-func (b AIBot) MakeMove() Move { return Move{} }
+func (b AIBot) MakeMove(board Board) Move { return Move{} }
 
 func getPlayerName() string {
 	scanner := bufio.NewScanner(os.Stdin)
