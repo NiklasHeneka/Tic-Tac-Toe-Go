@@ -12,8 +12,29 @@ func main() {
 	fmt.Println("Hello and welcome to a game of Tic-Tac-Toe!")
 	getPlayerName()
 	doesUserStart()
+	selectBot()
+	fmt.Println("Let the game begin! *Imagine some epic music*")
 
 }
+
+type Bot interface {
+	MakeMove() Move
+}
+
+type Move struct {
+	Row, Col int
+}
+type RandomBot struct{}
+
+func (b RandomBot) MakeMove() Move { return Move{} }
+
+type SmartBot struct{}
+
+func (b SmartBot) MakeMove() Move { return Move{} }
+
+type AIBot struct{}
+
+func (b AIBot) MakeMove() Move { return Move{} }
 
 func getPlayerName() string {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -35,6 +56,30 @@ func getPlayerName() string {
 		fmt.Println("Invalid input. Please try again.")
 	}
 	return playerName
+}
+
+func selectBot() Bot {
+	for {
+		fmt.Println("\nChoose the bot you want to play again:")
+		fmt.Println("1) Random positioning")
+		fmt.Println("2) Smart positioning")
+		fmt.Println("3) \"AI\" thinking outside the box")
+		fmt.Print("Selection (1-3): ")
+
+		var choice string
+		fmt.Scanln(&choice)
+
+		switch choice {
+		case "1":
+			return RandomBot{}
+		case "2":
+			return SmartBot{}
+		case "3":
+			return AIBot{}
+		default:
+			fmt.Println("Invalid choice, try again.")
+		}
+	}
 }
 
 func doesUserStart() bool {
