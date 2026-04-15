@@ -17,49 +17,30 @@ func main() {
 	fmt.Println("Let the game begin! *Imagine some epic music playing*")
 
 	board := Board{}
-	round := 1
-	printBoard(board)
-
+	currentPlayer := X
 	for {
-		if round%2 == 1 && userStarts {
-			userMove(&board, X)
-		} else if round%2 == 2 && !userStarts {
-			userMove(&board, O)
-		} else if round%2 == 1 && !userStarts {
-			bot.MakeMove(&board, X)
+		printBoard(board)
+		if currentPlayer == X && userStarts {
+			userMove(&board, currentPlayer, name)
+		} else if currentPlayer == O && !userStarts {
+			userMove(&board, currentPlayer, name)
+		} else if currentPlayer == X && !userStarts {
+			bot.MakeMove(&board, currentPlayer)
 		} else {
-			bot.MakeMove(&board, O)
+			bot.MakeMove(&board, currentPlayer)
 		}
 
-		printBoard(board)
-		round++
-
+		currentPlayer = changePlayer(currentPlayer)
 		gameOver, winner := isGameOver(board)
 		if gameOver {
-			if winner == None {
-				fmt.Println("This game ended in a draw. How boring...")
-			} else if winner == X && userStarts || winner == O && !userStarts {
-				fmt.Printf("Congratulations %v, you won!\n", name)
-			} else {
-				fmt.Println("You lost!")
-			}
-
-			var playAgain string
-			for {
-				fmt.Print("Do you want to play again? (y/n): ")
-				fmt.Scanln(&playAgain)
-
-				if playAgain == "y" {
-					board = Board{}
-					round = 1
-					break
-				} else if playAgain == "n" {
-					return
-				}
+			printBoard(board)
+			printWinner(winner, userStarts, name)
+			if playAgain() {
+				board = Board{}
+				currentPlayer = X
 			}
 		}
 	}
-
 }
 
 type Mark int
@@ -105,14 +86,21 @@ type AIBot struct{}
 
 func (b AIBot) MakeMove(board *Board, mark Mark) {}
 
-func userMove(board *Board, mark Mark) {
+func changePlayer(mark Mark) Mark {
+	if mark == X {
+		return O
+	}
+	return X
+}
+
+func userMove(board *Board, mark Mark, name string) {
 	for {
 		var input string
-		fmt.Print("Enter your field (e.g., 11, 23, 31): ")
+		fmt.Printf("%v it is your turn to place an %v.\nYou can do this by entering the position e.g. 13:\n", name, mark.String())
 		fmt.Scanln(&input)
 
 		if len(input) != 2 {
-			fmt.Println("Invalid format. Please enter exactly two digits (e.g., 13).")
+			fmt.Println("Invalid format. Please enter exactly two digits (e.g. 13).")
 			continue
 		}
 
@@ -127,12 +115,12 @@ func userMove(board *Board, mark Mark) {
 		r, c := rowDigit-1, colDigit-1
 
 		if r < 0 || r > 2 || c < 0 || c > 2 {
-			fmt.Println("Error: Digits must be between 1 and 3.")
+			fmt.Println("Invalid input. Digits must be between 1 and 3.")
 			continue
 		}
 
 		if board.fields[r][c] != None {
-			fmt.Printf("Error: %d%d is already taken by %s.\n", rowDigit, colDigit, board.fields[r][c])
+			fmt.Printf("Wrong field: %d%d is already taken by %s.\n", rowDigit, colDigit, board.fields[r][c])
 			continue
 		} else {
 			board.fields[r][c] = mark
@@ -173,6 +161,30 @@ func checkWinner(board Board) Mark {
 	}
 
 	return None
+}
+
+func printWinner(winner Mark, userStarts bool, name string) {
+	if winner == None {
+		fmt.Println("This game ended in a draw. How boring...")
+	} else if winner == X && userStarts || winner == O && !userStarts {
+		fmt.Printf("Congratulations %v, you won!\n", name)
+	} else {
+		fmt.Println("You lost!")
+	}
+}
+
+func playAgain() bool {
+	var playAgain string
+	for {
+		fmt.Print("Do you want to play again? (y/n): ")
+		fmt.Scanln(&playAgain)
+
+		if playAgain == "y" {
+			return true
+		} else if playAgain == "n" {
+			return false
+		}
+	}
 }
 
 func isBoardFull(board Board) bool {
@@ -220,9 +232,9 @@ func getPlayerName() string {
 func selectBot() Bot {
 	for {
 		fmt.Println("\nChoose the bot you want to play again:")
-		fmt.Println("1) Random positioning")
-		fmt.Println("2) Smart positioning")
-		fmt.Println("3) \"AI\" thinking outside the box")
+		fmt.Println("1) Easy Bot")
+		fmt.Println("2) Smart Bot")
+		fmt.Println("3) \"AI\" Bot thinking outside the box")
 		fmt.Print("Selection (1-3): ")
 
 		var choice string
