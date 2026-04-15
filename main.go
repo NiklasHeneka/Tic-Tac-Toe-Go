@@ -20,14 +20,11 @@ func main() {
 	currentPlayer := X
 	for {
 		printBoard(board)
-		if currentPlayer == X && userStarts {
+		if currentPlayer == X && userStarts || currentPlayer == O && !userStarts {
 			userMove(&board, currentPlayer, name)
-		} else if currentPlayer == O && !userStarts {
-			userMove(&board, currentPlayer, name)
-		} else if currentPlayer == X && !userStarts {
-			bot.MakeMove(&board, currentPlayer)
 		} else {
 			bot.MakeMove(&board, currentPlayer)
+			fmt.Println("The Bot made its move.")
 		}
 
 		currentPlayer = changePlayer(currentPlayer)
@@ -63,7 +60,9 @@ func (p Mark) String() string {
 }
 
 type Board struct {
-	fields [3][3]Mark
+	fields     [3][3]Mark
+	funnyField Position
+	funnyMark  Mark
 }
 
 type Bot interface {
@@ -73,41 +72,60 @@ type Bot interface {
 type RandomBot struct{}
 
 func (b RandomBot) MakeMove(board *Board, mark Mark) {
+	pos := randomMove(board)
+	board.fields[pos.x][pos.y] = mark
+}
+
+func randomMove(board *Board) Position {
 	possiblePosition := getUnoccupiedFields(*board)
 	random := rand.IntN(len(possiblePosition))
-	board.fields[possiblePosition[random].x][possiblePosition[random].y] = mark
+	return Position{possiblePosition[random].x, possiblePosition[random].y}
 }
 
 type SmartBot struct{}
 
 func (b SmartBot) MakeMove(board *Board, mark Mark) {
+	pos := smartMove(board, mark)
+	board.fields[pos.x][pos.y] = mark
+}
+
+func smartMove(board *Board, mark Mark) Position {
 	win, winPos := canWin(*board, mark)
 	preWin, preWinPos := canPreventLoss(*board, mark)
 
 	if win {
-		board.fields[winPos.x][winPos.y] = mark
+		return winPos
 	} else if preWin {
-		board.fields[preWinPos.x][preWinPos.y] = mark
+		return preWinPos
 	} else if board.fields[1][1] == None {
-		board.fields[1][1] = mark
+		return Position{1, 1}
 	} else if board.fields[0][0] == None {
-		board.fields[0][0] = mark
+		return Position{0, 0}
 	} else if board.fields[0][2] == None {
-		board.fields[0][2] = mark
+		return Position{0, 2}
 	} else if board.fields[2][0] == None {
-		board.fields[2][0] = mark
+		return Position{2, 0}
 	} else if board.fields[2][2] == None {
-		board.fields[2][2] = mark
-	} else {
-		possiblePosition := getUnoccupiedFields(*board)
-		random := rand.IntN(len(possiblePosition))
-		board.fields[possiblePosition[random].x][possiblePosition[random].y] = mark
+		return Position{2, 2}
 	}
+	return randomMove(board)
 }
 
 type AIBot struct{}
 
-func (b AIBot) MakeMove(board *Board, mark Mark) {}
+func (b AIBot) MakeMove(board *Board, mark Mark) {
+	win, winPos := canWin(*board, mark)
+	fakeWin, fakeWinPos := canFakeWin(*board, mark)
+	if win {
+		board.fields[winPos.x][winPos.y] = mark
+	} else if fakeWin {
+		board.funnyField = fakeWinPos
+		board.funnyMark = mark
+	} else {
+		pos := smartMove(board, mark)
+		board.fields[pos.x][pos.y] = mark
+	}
+}
 
 func canWin(board Board, mark Mark) (bool, Position) {
 	for r := 0; r < 3; r++ {
@@ -121,6 +139,34 @@ func canWin(board Board, mark Mark) (bool, Position) {
 				}
 			}
 		}
+	}
+	return false, Position{}
+}
+
+func canFakeWin(board Board, mark Mark) (bool, Position) {
+	fields := board.fields
+	for i := 0; i < 3; i++ {
+		if fields[i][0] == mark && fields[i][0] == fields[i][1] {
+			return true, Position{i, -1}
+		}
+		if fields[i][2] == mark && fields[i][2] == fields[i][1] {
+			return true, Position{i, 3}
+		}
+		if fields[0][i] == mark && fields[0][i] == fields[1][i] {
+			return true, Position{-1, i}
+		}
+		if fields[2][i] == mark && fields[2][i] == fields[1][i] {
+			return true, Position{3, i}
+		}
+	}
+	if fields[0][0] == mark && fields[0][0] == fields[1][1] {
+		return true, Position{-1, -1}
+	} else if fields[2][2] == mark && fields[2][2] == fields[1][1] {
+		return true, Position{3, 3}
+	} else if fields[0][2] == mark && fields[0][2] == fields[1][1] {
+		return true, Position{-1, 3}
+	} else if fields[2][0] == mark && fields[2][0] == fields[1][1] {
+		return true, Position{3, -1}
 	}
 	return false, Position{}
 }
@@ -186,6 +232,10 @@ func userMove(board *Board, mark Mark, name string) {
 }
 
 func isGameOver(board Board) (bool, Mark) {
+	empty := Position{0, 0}
+	if board.funnyField != empty {
+		return true, board.funnyMark
+	}
 	winner := checkWinner(board)
 	if winner != None {
 		return true, winner
@@ -210,9 +260,7 @@ func checkWinner(board Board) Mark {
 
 	if fields[0][0] != None && fields[0][0] == fields[1][1] && fields[1][1] == fields[2][2] {
 		return fields[0][0]
-	}
-
-	if fields[0][2] != None && fields[0][2] == fields[1][1] && fields[1][1] == fields[2][0] {
+	} else if fields[0][2] != None && fields[0][2] == fields[1][1] && fields[1][1] == fields[2][0] {
 		return fields[0][2]
 	}
 
@@ -325,17 +373,34 @@ func doesUserStart() bool {
 }
 
 func printBoard(board Board) {
-	fmt.Println()
-	for ind, row := range board.fields {
-		fmt.Print("    ")
-		for _, cell := range row {
-			fmt.Printf("| %s ", cell)
-		}
-		fmt.Print("|")
+	f := board.fields
+	empty := Position{0, 0}
+	if board.funnyField == empty {
 		fmt.Println()
-		if ind != len(board.fields)-1 {
-			fmt.Println("    -------------")
-		}
+		fmt.Printf("    -------------\n"+
+			"    | %v | %v | %v |\n"+
+			"    -------------\n"+
+			"    | %v | %v | %v |\n"+
+			"    -------------\n"+
+			"    | %v | %v | %v |\n"+
+			"    -------------\n", f[0][0], f[0][1], f[0][2], f[1][0], f[1][1], f[1][2], f[2][0], f[2][1], f[2][2])
+		fmt.Println()
+	} else {
+		b := [5][5]Mark{}
+		b[board.funnyField.x+1][board.funnyField.y+1] = board.funnyMark
+		fmt.Printf("  %v   %v   %v   %v   %v\n"+
+			"    -------------\n"+
+			"  %v | %v | %v | %v | %v\n"+
+			"    -------------\n"+
+			"  %v | %v | %v | %v | %v\n"+
+			"    -------------\n"+
+			"  %v | %v | %v | %v | %v\n"+
+			"    -------------\n"+
+			"  %v   %v   %v   %v   %v\n",
+			b[0][0], b[0][1], b[0][2], b[0][3], b[0][4],
+			b[1][0], f[0][0], f[0][1], f[0][2], b[1][4],
+			b[2][0], f[1][0], f[1][1], f[1][2], b[2][4],
+			b[3][1], f[2][0], f[2][1], f[2][2], b[3][4],
+			b[4][0], b[4][1], b[4][2], b[4][3], b[4][4])
 	}
-	fmt.Println()
 }
