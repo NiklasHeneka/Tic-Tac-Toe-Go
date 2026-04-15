@@ -32,10 +32,11 @@ func main() {
 		if gameOver {
 			printBoard(board)
 			printWinner(winner, userStarts, name)
-			if playAgain() {
-				board = Board{}
-				currentPlayer = X
+			if !playAgain() {
+				return
 			}
+			board = Board{}
+			currentPlayer = X
 		}
 	}
 }
