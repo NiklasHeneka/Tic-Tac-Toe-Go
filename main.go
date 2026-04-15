@@ -80,11 +80,67 @@ func (b RandomBot) MakeMove(board *Board, mark Mark) {
 
 type SmartBot struct{}
 
-func (b SmartBot) MakeMove(board *Board, mark Mark) {}
+func (b SmartBot) MakeMove(board *Board, mark Mark) {
+	win, winPos := canWin(*board, mark)
+	preWin, preWinPos := canPreventLoss(*board, mark)
+
+	if win {
+		board.fields[winPos.x][winPos.y] = mark
+	} else if preWin {
+		board.fields[preWinPos.x][preWinPos.y] = mark
+	} else if board.fields[1][1] == None {
+		board.fields[1][1] = mark
+	} else if board.fields[0][0] == None {
+		board.fields[0][0] = mark
+	} else if board.fields[0][2] == None {
+		board.fields[0][2] = mark
+	} else if board.fields[2][0] == None {
+		board.fields[2][0] = mark
+	} else if board.fields[2][2] == None {
+		board.fields[2][2] = mark
+	} else {
+		possiblePosition := getUnoccupiedFields(*board)
+		random := rand.IntN(len(possiblePosition))
+		board.fields[possiblePosition[random].x][possiblePosition[random].y] = mark
+	}
+}
 
 type AIBot struct{}
 
 func (b AIBot) MakeMove(board *Board, mark Mark) {}
+
+func canWin(board Board, mark Mark) (bool, Position) {
+	for r := 0; r < 3; r++ {
+		for c := 0; c < 3; c++ {
+			if board.fields[r][c] == None {
+				newBoard := board
+				newBoard.fields[r][c] = mark
+				winner := checkWinner(newBoard)
+				if winner == mark {
+					return true, Position{r, c}
+				}
+			}
+		}
+	}
+	return false, Position{}
+}
+
+func canPreventLoss(board Board, mark Mark) (bool, Position) {
+	for r := 0; r < 3; r++ {
+		for c := 0; c < 3; c++ {
+			if board.fields[r][c] == None {
+				newBoard := board
+				otherMark := changePlayer(mark)
+				newBoard.fields[r][c] = otherMark
+				winner := checkWinner(newBoard)
+				if winner == otherMark {
+					return true, Position{r, c}
+				}
+			}
+		}
+	}
+	return false, Position{}
+}
 
 func changePlayer(mark Mark) Mark {
 	if mark == X {
@@ -169,7 +225,7 @@ func printWinner(winner Mark, userStarts bool, name string) {
 	} else if winner == X && userStarts || winner == O && !userStarts {
 		fmt.Printf("Congratulations %v, you won!\n", name)
 	} else {
-		fmt.Println("You lost!")
+		fmt.Println("You lost! Git Gud")
 	}
 }
 
@@ -271,13 +327,14 @@ func doesUserStart() bool {
 func printBoard(board Board) {
 	fmt.Println()
 	for ind, row := range board.fields {
+		fmt.Print("    ")
 		for _, cell := range row {
-			fmt.Printf("|%s", cell)
-			fmt.Print("|")
+			fmt.Printf("| %s ", cell)
 		}
+		fmt.Print("|")
 		fmt.Println()
 		if ind != len(board.fields)-1 {
-			fmt.Println("---------")
+			fmt.Println("    -------------")
 		}
 	}
 	fmt.Println()
