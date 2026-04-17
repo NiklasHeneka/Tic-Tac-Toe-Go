@@ -15,11 +15,12 @@ func main() {
 	userStarts := doesUserStart()
 	bot := selectBot()
 	fmt.Println("Let the game begin! *Imagine some epic music playing*")
+	score := [3]int{0, 0, 0} //Player, Bot, Draw
 
 	board := Board{}
 	currentPlayer := X
 	for {
-		printBoard(board)
+		printBoard(board, score, name)
 		if currentPlayer == X && userStarts || currentPlayer == O && !userStarts {
 			userMove(&board, currentPlayer, name)
 		} else {
@@ -30,8 +31,9 @@ func main() {
 		currentPlayer = changePlayer(currentPlayer)
 		gameOver, winner := isGameOver(board)
 		if gameOver {
-			printBoard(board)
+			printBoard(board, score, name)
 			printWinner(winner, userStarts, name)
+			updateScore(&score, winner, userStarts)
 			if !playAgain() {
 				return
 			}
@@ -278,6 +280,16 @@ func printWinner(winner Mark, userStarts bool, name string) {
 	}
 }
 
+func updateScore(score *[3]int, winner Mark, userStarts bool) {
+	if winner == None {
+		score[2]++
+	} else if winner == X && userStarts || winner == O && !userStarts {
+		score[0]++
+	} else {
+		score[1]++
+	}
+}
+
 func playAgain() bool {
 	var playAgain string
 	for {
@@ -373,35 +385,38 @@ func doesUserStart() bool {
 	}
 }
 
-func printBoard(board Board) {
+func printBoard(board Board, score [3]int, name string) {
 	f := board.fields
 	empty := Position{0, 0}
 	if board.funnyField == empty {
 		fmt.Println()
 		fmt.Printf("    -------------\n"+
-			"    | %v | %v | %v |\n"+
+			"    | %v | %v | %v |   %v: %v\n"+
 			"    -------------\n"+
-			"    | %v | %v | %v |\n"+
+			"    | %v | %v | %v |   Bot: %v\n"+
 			"    -------------\n"+
-			"    | %v | %v | %v |\n"+
-			"    -------------\n", f[0][0], f[0][1], f[0][2], f[1][0], f[1][1], f[1][2], f[2][0], f[2][1], f[2][2])
+			"    | %v | %v | %v |   Draws: %v\n"+
+			"    -------------\n",
+			f[0][0], f[0][1], f[0][2], name, score[0],
+			f[1][0], f[1][1], f[1][2], score[1],
+			f[2][0], f[2][1], f[2][2], score[2])
 		fmt.Println()
 	} else {
 		b := [5][5]Mark{}
 		b[board.funnyField.x+1][board.funnyField.y+1] = board.funnyMark
 		fmt.Printf("  %v   %v   %v   %v   %v\n"+
 			"    -------------\n"+
-			"  %v | %v | %v | %v | %v\n"+
+			"  %v | %v | %v | %v | %v   %v: %v\n"+
 			"    -------------\n"+
-			"  %v | %v | %v | %v | %v\n"+
+			"  %v | %v | %v | %v | %v   Bot: %v\n"+
 			"    -------------\n"+
-			"  %v | %v | %v | %v | %v\n"+
+			"  %v | %v | %v | %v | %v   Draws: %v\n"+
 			"    -------------\n"+
 			"  %v   %v   %v   %v   %v\n",
 			b[0][0], b[0][1], b[0][2], b[0][3], b[0][4],
-			b[1][0], f[0][0], f[0][1], f[0][2], b[1][4],
-			b[2][0], f[1][0], f[1][1], f[1][2], b[2][4],
-			b[3][1], f[2][0], f[2][1], f[2][2], b[3][4],
+			b[1][0], f[0][0], f[0][1], f[0][2], b[1][4], name, score[0],
+			b[2][0], f[1][0], f[1][1], f[1][2], b[2][4], score[1],
+			b[3][1], f[2][0], f[2][1], f[2][2], b[3][4], score[2],
 			b[4][0], b[4][1], b[4][2], b[4][3], b[4][4])
 	}
 }
