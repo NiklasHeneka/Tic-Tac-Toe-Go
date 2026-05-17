@@ -218,12 +218,10 @@ func userMove(board *Board, mark Mark, name string) {
 		}
 
 		r, c := rowDigit-1, colDigit-1
-
 		if r < 0 || r > 2 || c < 0 || c > 2 {
 			fmt.Println("Invalid input. Digits must be between 1 and 3.")
 			continue
 		}
-
 		if board.fields[r][c] != None {
 			fmt.Printf("Wrong field: %d%d is already taken by %s.\n", rowDigit, colDigit, board.fields[r][c])
 			continue
@@ -260,13 +258,11 @@ func checkWinner(board Board) Mark {
 			return fields[0][i]
 		}
 	}
-
 	if fields[0][0] != None && fields[0][0] == fields[1][1] && fields[1][1] == fields[2][2] {
 		return fields[0][0]
 	} else if fields[0][2] != None && fields[0][2] == fields[1][1] && fields[1][1] == fields[2][0] {
 		return fields[0][2]
 	}
-
 	return None
 }
 
@@ -329,8 +325,7 @@ func getPlayerName() string {
 	var playerName string
 
 	for {
-		fmt.Print("Enter your name:")
-
+		fmt.Print("Enter your name: ")
 		if scanner.Scan() {
 			input := scanner.Text()
 			playerName = strings.TrimSpace(input)
@@ -340,7 +335,6 @@ func getPlayerName() string {
 				break
 			}
 		}
-
 		fmt.Println("Invalid input. Please try again.")
 	}
 	return playerName
@@ -372,7 +366,6 @@ func selectBot() Bot {
 
 func doesUserStart() bool {
 	var userStarts string
-
 	for {
 		fmt.Print("Do you want to make the first move? (y/n): ")
 		fmt.Scanln(&userStarts)
